@@ -142,12 +142,11 @@ def set_farm_multiplier_function(script: TransactionPayload) -> ScriptFunctionCa
     return ScriptFunctionCall__setFarmMultiplier(
         X=script.ty_args[0],
         Y=script.ty_args[1],
-        amount=bcs.deserialize(script.args[0], st.uint64)
+        multiplier=bcs.deserialize(script.args[0], st.uint64)
     )
 
 
 def init_custom_decode_function():
-    # starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP["TokenSwapScriptsadd_liquidity"] = add_liquidity_function
     starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP["TokenSwapFarmScriptstake"] = stake_function
     starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP["TokenSwapFarmScriptunstake"] = unstake_function
     starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP["TokenSwapFarmScriptharvest"] = harvest_function
