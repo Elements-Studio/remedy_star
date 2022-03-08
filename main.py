@@ -54,8 +54,8 @@ class Task:
 
             txn_info = self.cli.get_transaction_info(txn_hash)
             if "status" not in txn_info or txn_info["status"] != "Executed":
-                print("{} {} 's state are not `Executed`. {}::{}".format(block_num, txn_hash, module_name,
-                                                                         function_name))
+                print("Skip: {} {} 's state are not `Executed`. {}::{}".format(block_num, txn_hash, module_name,
+                                                                               function_name))
                 return None
 
             function_call = starcoin_stdlib.decode_script_function_payload(payload)
@@ -77,15 +77,15 @@ class Task:
 
             block_time = f"{datetime.datetime.fromtimestamp(block_timestamp):%Y-%m-%d %H:%M:%S}"
 
-            print("{} {} {} {}::{}".format(block_num, block_time, contract_addr, module_name,
-                                           function_name))
+            print("Ok: {} {} {} {}::{}".format(block_num, block_time, contract_addr, module_name,
+                                               function_name))
 
             return UserOpt(block_num, sender, opt, block_time, amount)
 
         except Exception as e:
-            print(e)
-            if not isinstance(e, ValueError):
-                print("{} {} parse error".format(block_num, txn_hash))
+            print("Err: {} {} , txn: {}".format(block_num, e, txn_hash))
+            # if not isinstance(e, ValueError):
+            #     print("{} {} parse error".format(block_num, txn_hash))
 
         return None
 

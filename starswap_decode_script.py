@@ -90,7 +90,7 @@ class ScriptFunctionCall__setFarmMultiplier(ScriptFunctionCall):
     multiplier: st.uint64
 
     def get_amount(self):
-        return self.multiplier[0].low
+        return self.multiplier[0]
 
 
 def add_liquidity_function(script: TransactionPayload) -> ScriptFunctionCall:
