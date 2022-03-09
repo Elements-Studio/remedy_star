@@ -1,79 +1,108 @@
 from utils import time_util
 
 
+def diff_two_times(start, end) -> int:
+    return time_util.readable_string_to_unix_time(end) - time_util.readable_string_to_unix_time(start)
+
+
 class User:
     def __init__(self):
         self.sender = 0
-        self.weight = 0
-        self.latest_time = 0
+        self.asset_weight = 0
+        self.harvest_index = 0
         self.actual_gain = 0
         self.expect_gain = 0
         self.remedy_gain = 0
 
+    def add_new_gain(self, new_acutal_gain, multiplier):
+        self.actual_gain = self.actual_gain + new_acutal_gain
 
-def diff_two_times(lhs, rhs) -> int:
-    return abs(time_util.readable_string_to_unix_time(lhs) -
-               time_util.readable_string_to_unix_time(rhs))
+        new_expect_gain = new_acutal_gain * multiplier
+        self.expect_gain = self.expect_gain + new_expect_gain
+
+        new_remedy_gain = new_expect_gain - new_acutal_gain
+        self.remedy_gain = self.remedy_gain + new_remedy_gain
+
+    def add_weight(self, weight):
+        self.asset_weight = self.asset_weight + weight
+
+    def remove_weight(self, weight):
+        self.asset_weight = self.asset_weight - weight
 
 
-def computer_gain(user, total_weight, now_time, release_per_second) -> int:
-    time_interval = diff_two_times(user.latest_time, now_time)
-    gain = time_interval * release_per_second * (user.weight / total_weight)
-    return gain
+class AssetPool:
+    def __init__(self, begin_time, release_per_second):
+        self.harvest_index = 0
+        self.total_weight = 0
+        self.last_update = begin_time
+        self.release_per_second = release_per_second
+
+    def refresh_new_harvest_index(self, now_seconds):
+        time_period = diff_two_times(self.last_update, now_seconds)
+        if self.total_weight <= 0:
+            self.harvest_index = self.harvest_index + (time_period * self.release_per_second)
+        else:
+            self.harvest_index = self.harvest_index + (time_period * self.release_per_second / self.total_weight)
+        self.last_update = now_seconds
+
+    def computer_gain(self, user) -> int:
+        if self.total_weight <= 0:
+            return self.harvest_index - user.harvest_index
+        return user.asset_weight * (self.harvest_index - user.harvest_index)
+
+    def add_weight(self, weight):
+        self.total_weight = self.total_weight + weight
+
+    def remove_weight(self, weight):
+        self.total_weight = self.total_weight - weight
 
 
-def computer_users(opts, begin_time, release_per_second, multiplier) -> dict:
-    total_weight = 0
+def computer_users(opts, begin_time, end_time, release_per_second, multiplier) -> dict:
+    pool = AssetPool(begin_time=begin_time, release_per_second=release_per_second)
     users = dict()
-    latest_time = begin_time
 
     for opt in opts:
         sender = opt.get('sender')
         option = opt.get('opt')
-        now_time = opt.get('opt_time')
-        amount = int(opt.get('amount'))
+        now_seconds = opt.get('opt_time')
+        asset_weight = int(opt.get('amount'))
+
+        if option not in ['stake', 'unstake']:
+            continue
 
         # Contribute User object
         if sender not in users:
             user = User()
-            user.latest_time = begin_time
             user.sender = sender
         else:
             user = users.get(sender)
 
-        if option == 'stake':
-            # Add weight
-            if total_weight > 0:
-                new_gain = computer_gain(user, total_weight, now_time, release_per_second)
-                user.actual_gain = user.actual_gain + new_gain
-                user.expect_gain = user.expect_gain + new_gain * multiplier
-                user.remedy_gain = user.remedy_gain + (user.expect_gain - user.actual_gain)
+        if pool.total_weight <= 0:
+            pool.refresh_new_harvest_index(now_seconds)
 
-            user.weight = user.weight + amount
-            total_weight = total_weight + amount
+        if option == 'stake':
+            new_gain = pool.computer_gain(user)
+            user.add_new_gain(new_gain, multiplier)
+            user.add_weight(asset_weight)
+
+            pool.add_weight(asset_weight)
+            pool.refresh_new_harvest_index(now_seconds)
 
         elif option == 'unstake':
-            # Add Gain
-            new_gain = computer_gain(user, total_weight, now_time, release_per_second)
-            user.actual_gain = user.actual_gain + new_gain
-            user.expect_gain = user.expect_gain + new_gain * multiplier
-            user.remedy_gain = user.remedy_gain + (user.expect_gain - user.actual_gain)
+            new_gain = pool.computer_gain(user)
+            user.add_new_gain(new_gain, multiplier)
+            user.remove_weight(asset_weight)
 
-            # Remove weight
-            total_weight = total_weight - amount
-            user.weight = 0
-        else:
-            latest_time = now_time
-            continue
+            pool.remove_weight(asset_weight)
+            pool.refresh_new_harvest_index(now_seconds)
 
-        user.latest_time = now_time
+        user.harvest_index = pool.harvest_index
         users[sender] = user
-        latest_time = now_time
 
     # Computer all gain in the end
     for sender, user in users.items():
-        new_gain = computer_gain(user, total_weight, latest_time, release_per_second)
-        user.actual_gain = user.actual_gain + new_gain
-        user.expect_gain = user.expect_gain + new_gain * multiplier
-        user.remedy_gain = user.remedy_gain + (user.expect_gain - user.actual_gain)
+        pool.refresh_new_harvest_index(end_time)
+        new_gain = pool.computer_gain(user)
+        user.add_new_gain(new_gain, multiplier)
+
     return users

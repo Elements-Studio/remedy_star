@@ -169,13 +169,14 @@ def crawl_from_blocks():
 def computer_from_csv_file():
     # computer STC::STC <-> STAR::STAR pair
     opts = file_util.read_from_file("datas/star-1.csv")
-    star_users = computer_remedy.computer_users(opts, "2022-03-05 09:37:39", 0.02, 30)
-    keys = list(list(star_users.values())[0].__dict__.keys())
+    star_users = computer_remedy.computer_users(opts, begin_time="2022-03-05 09:37:39", end_time="2022-03-05 14:21:00",
+                                                release_per_second=0.02, multiplier=30)
     file_util.save_to_file("datas/star-result.csv", list(star_users.values()))
 
     # computer STC::STC <-> FAI::FAI pair
     opts = file_util.read_from_file("datas/fai-1.csv")
-    fai_users = computer_remedy.computer_users(opts, "2022-03-05 09:37:00", 0.02, 10)
+    fai_users = computer_remedy.computer_users(opts, begin_time="2022-03-05 09:37:00", end_time="2022-03-05 14:21:25",
+                                               release_per_second=0.02, multiplier=10)
     file_util.save_to_file("datas/fai-result.csv", list(fai_users.values()))
 
     pass
