@@ -50,6 +50,9 @@ class ScriptFunctionCall__stake(ScriptFunctionCall):
     def get_amount(self):
         return self.amount[0].low
 
+    def get_x_y(self):
+        return print_type_arg(type_arg=self.X), print_type_arg(type_arg=self.Y)
+
 
 @dataclass(frozen=True)
 class ScriptFunctionCall__unstake(ScriptFunctionCall):
@@ -64,6 +67,9 @@ class ScriptFunctionCall__unstake(ScriptFunctionCall):
 
     def get_amount(self):
         return self.amount[0].low
+
+    def get_x_y(self):
+        return print_type_arg(type_arg=self.X), print_type_arg(type_arg=self.Y)
 
 
 @dataclass(frozen=True)
@@ -80,6 +86,9 @@ class ScriptFunctionCall__harvest(ScriptFunctionCall):
     def get_amount(self):
         return self.amount[0].low
 
+    def get_x_y(self):
+        return print_type_arg(type_arg=self.X), print_type_arg(type_arg=self.Y)
+
 
 @dataclass(frozen=True)
 class ScriptFunctionCall__setFarmMultiplier(ScriptFunctionCall):
@@ -91,6 +100,24 @@ class ScriptFunctionCall__setFarmMultiplier(ScriptFunctionCall):
 
     def get_amount(self):
         return self.multiplier[0]
+
+    def get_x_y(self):
+        return print_type_arg(type_arg=self.X), print_type_arg(type_arg=self.Y)
+
+
+@dataclass(frozen=True)
+class ScriptFunctionCall__resetFarmActivation(ScriptFunctionCall):
+    """.
+    """
+    X: starcoin_types.TypeTag
+    Y: starcoin_types.TypeTag
+    activation: st.bool
+
+    def get_amount(self):
+        return self.activation
+
+    def get_x_y(self):
+        return print_type_arg(type_arg=self.X), print_type_arg(type_arg=self.Y)
 
 
 def add_liquidity_function(script: TransactionPayload) -> ScriptFunctionCall:
@@ -146,9 +173,21 @@ def set_farm_multiplier_function(script: TransactionPayload) -> ScriptFunctionCa
     )
 
 
+def reset_farm_activation_function(script: TransactionPayload) -> ScriptFunctionCall:
+    if not isinstance(script, ScriptFunction):
+        raise ValueError("Unexpected transaction payload")
+    return ScriptFunctionCall__resetFarmActivation(
+        X=script.ty_args[0],
+        Y=script.ty_args[1],
+        activation=bcs.deserialize(script.args[0], st.bool)
+    )
+
+
 def init_custom_decode_function():
     starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP["TokenSwapFarmScriptstake"] = stake_function
     starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP["TokenSwapFarmScriptunstake"] = unstake_function
     starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP["TokenSwapFarmScriptharvest"] = harvest_function
     starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP[
         "TokenSwapFarmScriptset_farm_multiplier"] = set_farm_multiplier_function
+    starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP[
+        "TokenSwapFarmScriptreset_farm_activation"] = reset_farm_activation_function

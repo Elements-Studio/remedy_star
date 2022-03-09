@@ -11,8 +11,10 @@ import starswap_decode_script
 
 
 class UserOpt:
-    def __init__(self, block_num, sender, opt, opt_time, amount):
+    def __init__(self, block_num, sender, opt, opt_time, token_x, token_y, amount):
         self.block_num = block_num
+        self.token_x = token_x
+        self.token_y = token_y
         self.sender = sender
         self.opt = opt
         self.opt_time = opt_time
@@ -59,33 +61,32 @@ class Task:
                 return None
 
             function_call = starcoin_stdlib.decode_script_function_payload(payload)
-            amount = 0
+            amount = function_call.get_amount()
+            token_x, token_y = function_call.get_x_y()
             opt = ''
 
             if isinstance(function_call, starswap_decode_script.ScriptFunctionCall__stake):
-                amount = function_call.get_amount()
                 opt = "stake"
             elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__unstake):
-                amount = function_call.get_amount()
                 opt = "unstake"
             elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__harvest):
-                amount = function_call.get_amount()
                 opt = "harvest"
             elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__setFarmMultiplier):
-                amount = function_call.get_amount()
                 opt = "multiplier"
+            elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__resetFarmActivation):
+                opt = "activation"
 
             block_time = f"{datetime.datetime.fromtimestamp(block_timestamp):%Y-%m-%d %H:%M:%S}"
 
-            print("Ok: {} {} {} {}::{}".format(block_num, block_time, contract_addr, module_name,
-                                               function_name))
+            print("Ok: {} {} {} {}::{}<{}, {}>".format(block_num, block_time, contract_addr, module_name,
+                                                       function_name, token_x, token_y))
 
-            return UserOpt(block_num, sender, opt, block_time, amount)
+            return UserOpt(block_num, sender, opt, block_time, token_x, token_y, amount)
 
         except Exception as e:
-            print("Err: {} {} , txn: {}".format(block_num, e, txn_hash))
-            # if not isinstance(e, ValueError):
-            #     print("{} {} parse error".format(block_num, txn_hash))
+            if "Unknown script" not in e.__str__():
+                print("Err: {} {} , txn: {}".format(block_num, e, txn_hash))
+            pass
 
         return None
 
@@ -115,7 +116,7 @@ def do_crawl(begin_block_num, end_block_num):
 
 
 def save_to_file(file_name, opts):
-    csv_columns = ["block_num", "sender", "opt", "opt_time", "amount"]
+    csv_columns = ["block_num", "sender", "opt", "opt_time", "token_x", "token_y", "amount"]
     csv_file = file_name
     try:
         with open(csv_file, 'w') as csvfile:
@@ -128,6 +129,17 @@ def save_to_file(file_name, opts):
 
 
 BLOCK_NUM_RANGES = [
+    {"start": 4520000, "end": 4521000},
+    {"start": 4521000, "end": 4522000},
+    {"start": 4522000, "end": 4523000},
+    {"start": 4523000, "end": 4524000},
+    {"start": 4524000, "end": 4525000},
+    {"start": 4525000, "end": 4526000},
+    {"start": 4526000, "end": 4527000},
+    {"start": 4527000, "end": 4528000},
+    {"start": 4528000, "end": 4529000},
+    {"start": 4529000, "end": 4530000},
+
     {"start": 4530000, "end": 4531000},
     {"start": 4531000, "end": 4532000},
     {"start": 4532000, "end": 4533000},
