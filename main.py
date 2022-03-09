@@ -152,33 +152,38 @@ def crawl_from_blocks():
     # We can use a with statement to ensure threads are cleaned up promptly
     with concurrent.futures.ThreadPoolExecutor(max_workers=cnt) as executor:
         # Start the load operations and mark each future with its URL
-        future_to_url = {executor.submit(do_crawl, r.get('start'), r.get('end')): r for r in BLOCK_NUM_RANGES}
-        for future in concurrent.futures.as_completed(future_to_url):
-            url = future_to_url[future]
+        threads = {executor.submit(do_crawl, r.get('start'), r.get('end')): r for r in BLOCK_NUM_RANGES}
+        for future in concurrent.futures.as_completed(threads):
+            th = threads[future]
             try:
                 data = future.result()
                 opts.extend(data)
             except Exception as exc:
-                print('%r generated an exception: %s' % (url, exc))
+                print('thread %r generated an exception: %s' % (th, exc))
             else:
-                print('%r page is %d bytes' % (url, len(data)))
+                print('%r data count is %d' % (th, len(data)))
 
-    file_util.save_to_file("out.csv", opts)
+    file_util.save_to_file("datas/out.csv",
+                           csv_columns=["block_num", "sender", "opt", "opt_time", "token_x", "token_y", "amount"],
+                           opts=opts)
 
 
 def computer_from_csv_file():
     # computer STC::STC <-> STAR::STAR pair
-    opts = file_util.read_from_file("star.csv")
-    star_users = computer_remedy.computer_users(opts, 0.002)
-    print(star_users)
+    opts = file_util.read_from_file("datas/star-1.csv")
+    star_users = computer_remedy.computer_users(opts, "2022-03-05 09:37:39", 0.002, 30)
+    keys = list(list(star_users.values())[0].__dict__.keys())
+    file_util.save_to_file("datas/star-result.csv", keys, list(star_users.values()))
 
-    # # computer STC::STC <-> FAI::FAI pair
-    # opts = file_util.read_from_file("fai.csv")
-    # star_users = computer_remedy.computer_users()
+    # computer STC::STC <-> FAI::FAI pair
+    opts = file_util.read_from_file("datas/fai-1.csv")
+    fai_users = computer_remedy.computer_users(opts, "2022-03-05 09:37:00", 0.002, 10)
+    keys = list(list(fai_users.values())[0].__dict__.keys())
+    file_util.save_to_file("datas/fai-result.csv", keys, list(fai_users.values()))
 
     pass
 
 
-if __name__ == '__main__':
+if __name__ ==  '__main__':
     # crawl_from_blocks()
     computer_from_csv_file()

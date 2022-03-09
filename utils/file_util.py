@@ -14,8 +14,7 @@ def read_from_file(file_name):
     return opts
 
 
-def save_to_file(file_name, opts):
-    csv_columns = ["block_num", "sender", "opt", "opt_time", "token_x", "token_y", "amount"]
+def save_to_file(file_name, csv_columns, opts):
     csv_file = file_name
     try:
         with open(csv_file, 'w') as csvfile:
