@@ -8,6 +8,7 @@ class User:
         self.latest_time = 0
         self.actual_gain = 0
         self.expect_gain = 0
+        self.remedy_gain = 0
 
 
 def diff_two_times(lhs, rhs) -> int:
@@ -42,6 +43,12 @@ def computer_users(opts, begin_time, release_per_second, multiplier) -> dict:
 
         if option == 'stake':
             # Add weight
+            if total_weight > 0:
+                new_gain = computer_gain(user, total_weight, now_time, release_per_second)
+                user.actual_gain = user.actual_gain + new_gain
+                user.expect_gain = user.expect_gain + new_gain * multiplier
+                user.remedy_gain = user.remedy_gain + (user.expect_gain - user.actual_gain)
+
             user.weight = user.weight + amount
             total_weight = total_weight + amount
 
@@ -50,6 +57,7 @@ def computer_users(opts, begin_time, release_per_second, multiplier) -> dict:
             new_gain = computer_gain(user, total_weight, now_time, release_per_second)
             user.actual_gain = user.actual_gain + new_gain
             user.expect_gain = user.expect_gain + new_gain * multiplier
+            user.remedy_gain = user.remedy_gain + (user.expect_gain - user.actual_gain)
 
             # Remove weight
             total_weight = total_weight - amount
@@ -67,4 +75,5 @@ def computer_users(opts, begin_time, release_per_second, multiplier) -> dict:
         new_gain = computer_gain(user, total_weight, latest_time, release_per_second)
         user.actual_gain = user.actual_gain + new_gain
         user.expect_gain = user.expect_gain + new_gain * multiplier
+        user.remedy_gain = user.remedy_gain + (user.expect_gain - user.actual_gain)
     return users

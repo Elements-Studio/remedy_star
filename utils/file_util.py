@@ -14,7 +14,8 @@ def read_from_file(file_name):
     return opts
 
 
-def save_to_file(file_name, csv_columns, opts):
+def save_to_file(file_name, opts):
+    csv_columns = list(opts[0].__dict__.keys())
     csv_file = file_name
     try:
         with open(csv_file, 'w') as csvfile:
