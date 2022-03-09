@@ -1,11 +1,13 @@
 #!/bin/bash
 import concurrent
 import concurrent.futures
-import csv
 import datetime
 
 from starcoin.sdk import client
 from starcoin import starcoin_types, starcoin_stdlib
+
+import computer_remedy
+from utils import file_util
 
 import starswap_decode_script
 
@@ -115,19 +117,6 @@ def do_crawl(begin_block_num, end_block_num):
     return task.parse_blocks_to_opts()
 
 
-def save_to_file(file_name, opts):
-    csv_columns = ["block_num", "sender", "opt", "opt_time", "token_x", "token_y", "amount"]
-    csv_file = file_name
-    try:
-        with open(csv_file, 'w') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
-            writer.writeheader()
-            for data in opts:
-                writer.writerow(data.__dict__)
-    except IOError:
-        print("I/O error")
-
-
 BLOCK_NUM_RANGES = [
     {"start": 4520000, "end": 4521000},
     {"start": 4521000, "end": 4522000},
@@ -152,21 +141,12 @@ BLOCK_NUM_RANGES = [
     {"start": 4539000, "end": 4540000},
     {"start": 4540000, "end": 4541000},
 
-    # {"start": 4593000, "end": 4593100},
-    # {"start": 4593100, "end": 4593200},
-    # {"start": 4593200, "end": 4593300},
-    # {"start": 4593300, "end": 4593400},
-    # {"start": 4593400, "end": 4593500},
-    # {"start": 4593500, "end": 4593600},
-    # {"start": 4593600, "end": 4593700},
-    # {"start": 4593700, "end": 4593800},
-    # {"start": 4593800, "end": 4593900},
-    # {"start": 4593900, "end": 4594000},
-
 ]
 
 
-def main():
+def crawl_from_blocks():
+    starswap_decode_script.init_custom_decode_function()
+
     opts = list()
     cnt = len(BLOCK_NUM_RANGES)
     # We can use a with statement to ensure threads are cleaned up promptly
@@ -183,11 +163,22 @@ def main():
             else:
                 print('%r page is %d bytes' % (url, len(data)))
 
-    save_to_file("out.csv", opts)
+    file_util.save_to_file("out.csv", opts)
+
+
+def computer_from_csv_file():
+    # computer STC::STC <-> STAR::STAR pair
+    opts = file_util.read_from_file("star.csv")
+    star_users = computer_remedy.computer_users(opts, 0.002)
+    print(star_users)
+
+    # # computer STC::STC <-> FAI::FAI pair
+    # opts = file_util.read_from_file("fai.csv")
+    # star_users = computer_remedy.computer_users()
+
+    pass
 
 
 if __name__ == '__main__':
-    starswap_decode_script.init_custom_decode_function()
-    main()
-    # crawl_all_user_options(begin_block_num=4535000, end_block_num=4540000)
-    # do_crawl(begin_block_num=4530000, end_block_num=4540000)
+    # crawl_from_blocks()
+    computer_from_csv_file()
