@@ -29,11 +29,17 @@ class ScriptFunctionCall__addLiquidity(ScriptFunctionCall):
                                                         self.amount_x_desired.low, self.amount_y_desired.low,
                                                         self.amount_x_min.low, self.amount_y_min.low)
 
-    def getX(self) -> str:
-        return print_type_arg(type_arg=self.X)
+    def get_x_y(self):
+        return print_type_arg(type_arg=self.X), print_type_arg(type_arg=self.Y)
 
-    def getY(self) -> str:
-        return print_type_arg(type_arg=self.Y)
+    def get_amount(self):
+        return (self.amount_x_desired[0].low, self.amount_y_desired[0].low)
+
+    def get_amount_x_desired(self):
+        return self.amount_x_desired.low
+
+    def get_amount_y_desired(self):
+        return self.amount_y_desired.low
 
 
 @dataclass(frozen=True)
@@ -184,9 +190,10 @@ def reset_farm_activation_function(script: TransactionPayload) -> ScriptFunction
 
 
 def init_custom_decode_function():
-    starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP["TokenSwapFarmScriptstake"] = stake_function
-    starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP["TokenSwapFarmScriptunstake"] = unstake_function
-    starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP["TokenSwapFarmScriptharvest"] = harvest_function
+    starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP["TokenSwapScriptsadd_liquidity"] = add_liquidity_function
+    # starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP["TokenSwapFarmScriptstake"] = stake_function
+    # starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP["TokenSwapFarmScriptunstake"] = unstake_function
+    # starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP["TokenSwapFarmScriptharvest"] = harvest_function
     starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP[
         "TokenSwapFarmScriptset_farm_multiplier"] = set_farm_multiplier_function
     starcoin.starcoin_stdlib.SCRIPT_FUNCTION_DECODER_MAP[

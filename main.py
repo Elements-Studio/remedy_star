@@ -6,7 +6,7 @@ import datetime
 from starcoin.sdk import client
 from starcoin import starcoin_types, starcoin_stdlib
 
-import computer_remedy
+import cal_rem_harvest, cal_rem_addliq
 from utils import file_util
 
 import starswap_decode_script
@@ -64,26 +64,34 @@ class Task:
 
             function_call = starcoin_stdlib.decode_script_function_payload(payload)
             amount = function_call.get_amount()
-            token_x, token_y = function_call.get_x_y()
+            token_x_tag, token_y_tag = function_call.get_x_y()
             opt = ''
+            # if isinstance(function_call, starswap_decode_script.ScriptFunctionCall__stake):
+            #     opt = "stake"
+            # elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__unstake):
+            #     opt = "unstake"
+            # elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__harvest):
+            #     opt = "harvest"
+            # elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__unstake):
+            #     opt = "unstake"
+            # elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__harvest):
+            #     opt = "harvest"
 
-            if isinstance(function_call, starswap_decode_script.ScriptFunctionCall__stake):
-                opt = "stake"
-            elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__unstake):
-                opt = "unstake"
-            elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__harvest):
-                opt = "harvest"
+            if isinstance(function_call, starswap_decode_script.ScriptFunctionCall__resetFarmActivation):
+                opt = "activation"
+            elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__addLiquidity):
+                opt = "add_liquidity"
             elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__setFarmMultiplier):
                 opt = "multiplier"
-            elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__resetFarmActivation):
-                opt = "activation"
+            else:
+                return None
 
             block_time = f"{datetime.datetime.fromtimestamp(block_timestamp):%Y-%m-%d %H:%M:%S}"
 
             print("Ok: {} {} {} {}::{}<{}, {}>".format(block_num, block_time, contract_addr, module_name,
-                                                       function_name, token_x, token_y))
+                                                       function_name, token_x_tag, token_y_tag))
 
-            return UserOpt(block_num, sender, opt, block_time, token_x, token_y, amount)
+            return UserOpt(block_num, sender, opt, block_time, token_x_tag, token_y_tag, amount)
 
         except Exception as e:
             if "Unknown script" not in e.__str__():
@@ -163,25 +171,36 @@ def crawl_from_blocks():
             else:
                 print('%r data count is %d' % (th, len(data)))
 
-    file_util.save_to_file("datas/out.csv", opts=opts)
+    file_util.save_to_file("datas/out-add-liquidity.csv", opts=opts)
 
 
-def computer_from_csv_file():
+def computer_harvest_model_from_csv_file():
     # computer STC::STC <-> STAR::STAR pair
     opts = file_util.read_from_file("datas/star-1.csv")
-    star_users = computer_remedy.computer_users(opts, begin_time="2022-03-05 09:37:39", end_time="2022-03-05 14:21:00",
+    star_users = cal_rem_harvest.computer_users(opts, begin_time="2022-03-05 09:37:39", end_time="2022-03-05 14:21:00",
                                                 release_per_second=0.02, multiplier=30)
     file_util.save_to_file("datas/star-result.csv", list(star_users.values()))
 
     # computer STC::STC <-> FAI::FAI pair
     opts = file_util.read_from_file("datas/fai-1.csv")
-    fai_users = computer_remedy.computer_users(opts, begin_time="2022-03-05 09:37:00", end_time="2022-03-05 14:21:25",
+    fai_users = cal_rem_harvest.computer_users(opts, begin_time="2022-03-05 09:37:00", end_time="2022-03-05 14:21:25",
                                                release_per_second=0.02, multiplier=10)
     file_util.save_to_file("datas/fai-result.csv", list(fai_users.values()))
 
-    pass
+
+def computer_addliq_model_from_csv_file():
+    # computer STC::STC <-> FAI::FAI pair
+    opts = file_util.read_from_file("datas/addliq-fai.csv")
+    result_data = cal_rem_addliq.computer_users(opts, 100, 2)
+    file_util.save_to_file("datas/addliq-fai-result.csv", list(result_data.values()))
+
+    # computer STC::STC <-> STAR::STAR pair
+    opts = file_util.read_from_file("datas/addliq-star.csv")
+    result_data = cal_rem_addliq.computer_users(opts, 1, 10)
+    file_util.save_to_file("datas/addliq-star-result.csv", list(result_data.values()))
 
 
 if __name__ == '__main__':
     # crawl_from_blocks()
-    computer_from_csv_file()
+    # computer_from_csv_file()
+    computer_addliq_model_from_csv_file()

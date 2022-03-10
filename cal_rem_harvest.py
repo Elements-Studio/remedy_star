@@ -1,10 +1,5 @@
 from utils import time_util
 
-
-def diff_two_times(start, end) -> int:
-    return time_util.readable_string_to_unix_time(end) - time_util.readable_string_to_unix_time(start)
-
-
 class User:
     def __init__(self):
         self.sender = 0
@@ -38,7 +33,7 @@ class AssetPool:
         self.release_per_second = release_per_second
 
     def refresh_new_harvest_index(self, now_seconds):
-        time_period = diff_two_times(self.last_update, now_seconds)
+        time_period = time_util.diff_two_times(self.last_update, now_seconds)
         if self.total_weight <= 0:
             self.harvest_index = self.harvest_index + (time_period * self.release_per_second)
         else:
