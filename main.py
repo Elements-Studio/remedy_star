@@ -3,18 +3,19 @@ import concurrent
 import concurrent.futures
 import datetime
 
-from starcoin.sdk import client
+from starcoin.sdk import client, utils
 from starcoin import starcoin_types, starcoin_stdlib
 
 import cal_rem_harvest, cal_rem_addliq
-from utils import file_util
+from utils import file_util, time_util
 
 import starswap_decode_script
 
 
 class UserOpt:
-    def __init__(self, block_num, sender, opt, opt_time, token_x, token_y, amount):
+    def __init__(self, block_num, txn_hash, sender, opt, opt_time, token_x, token_y, amount):
         self.block_num = block_num
+        self.txn_hash = txn_hash
         self.token_x = token_x
         self.token_y = token_y
         self.sender = sender
@@ -27,12 +28,26 @@ def parse_module_address(payload) -> str:
     return "0x" + ''.join([hex(i)[2:] for i in payload.value.module.address.value])
 
 
-class Task:
+class CrawlTask:
 
     def __init__(self, begin_block_num, end_block_num):
         self.cli = client.Client("https://main-seed.starcoin.org")
         self.begin_block_num = begin_block_num
         self.end_block_num = end_block_num
+
+    def parse_deposit_amount_from_remove_liquidity_txn(self, txn_hash):
+        result = list()
+        events = self.cli.get_events_by_txn_hash(txn_hash)
+        for event in events:
+            type_tag = event["type_tag"]
+            if "DepositEvent" not in type_tag:
+                continue
+
+            event_data = event["data"][2:]
+            data = starcoin_types.DepositEvent.bcs_deserialize(
+                bytes.fromhex(event_data))
+            result.append(int(data.amount))
+        return result
 
     def parser_txn(self, txn, block_num, block_timestamp):
         raw_txn = txn["raw_txn"]
@@ -66,6 +81,7 @@ class Task:
             amount = function_call.get_amount()
             token_x_tag, token_y_tag = function_call.get_x_y()
             opt = ''
+
             # if isinstance(function_call, starswap_decode_script.ScriptFunctionCall__stake):
             #     opt = "stake"
             # elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__unstake):
@@ -81,17 +97,21 @@ class Task:
                 opt = "activation"
             elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__addLiquidity):
                 opt = "add_liquidity"
+            elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__removeLiquidity):
+                opt = "remove_liquidity"
+                amount = self.parse_deposit_amount_from_remove_liquidity_txn(txn_hash)
             elif isinstance(function_call, starswap_decode_script.ScriptFunctionCall__setFarmMultiplier):
                 opt = "multiplier"
             else:
                 return None
 
-            block_time = f"{datetime.datetime.fromtimestamp(block_timestamp):%Y-%m-%d %H:%M:%S}"
+            block_time_str = time_util.unix_time_to_readable_string(block_timestamp)
 
-            print("Ok: {} {} {} {}::{}<{}, {}>".format(block_num, block_time, contract_addr, module_name,
-                                                       function_name, token_x_tag, token_y_tag))
+            print(
+                "Ok: {} {} {} {} {}::{}<{}, {}>".format(block_num, txn_hash, block_time_str, contract_addr, module_name,
+                                                        function_name, token_x_tag, token_y_tag))
 
-            return UserOpt(block_num, sender, opt, block_time, token_x_tag, token_y_tag, amount)
+            return UserOpt(block_num, txn_hash, sender, opt, block_time_str, token_x_tag, token_y_tag, amount)
 
         except Exception as e:
             if "Unknown script" not in e.__str__():
@@ -121,7 +141,7 @@ class Task:
 
 
 def do_crawl(begin_block_num, end_block_num):
-    task = Task(begin_block_num, end_block_num)
+    task = CrawlTask(begin_block_num, end_block_num)
     return task.parse_blocks_to_opts()
 
 
@@ -151,6 +171,8 @@ BLOCK_NUM_RANGES = [
 
 ]
 
+LIQUIDITY_CRAWL_FILE = 'datas/addliq-download-data.csv'
+
 
 def crawl_from_blocks():
     starswap_decode_script.init_custom_decode_function()
@@ -171,7 +193,7 @@ def crawl_from_blocks():
             else:
                 print('%r data count is %d' % (th, len(data)))
 
-    file_util.save_to_file("datas/out-add-liquidity.csv", opts=opts)
+    file_util.save_to_file(LIQUIDITY_CRAWL_FILE, opts=opts)
 
 
 def computer_harvest_model_from_csv_file():
@@ -189,18 +211,18 @@ def computer_harvest_model_from_csv_file():
 
 
 def computer_addliq_model_from_csv_file():
+    opts = file_util.read_from_file(LIQUIDITY_CRAWL_FILE)
+
     # computer STC::STC <-> FAI::FAI pair
-    opts = file_util.read_from_file("datas/addliq-fai.csv")
-    result_data = cal_rem_addliq.computer_users(opts, 100, 2)
+    result_data = cal_rem_addliq.computer_users(opts, 'FAI::FAI', 100, 2)
     file_util.save_to_file("datas/addliq-fai-result.csv", list(result_data.values()))
 
     # computer STC::STC <-> STAR::STAR pair
-    opts = file_util.read_from_file("datas/addliq-star.csv")
-    result_data = cal_rem_addliq.computer_users(opts, 1, 10)
+    result_data = cal_rem_addliq.computer_users(opts, 'STAR::STAR', 1, 10)
     file_util.save_to_file("datas/addliq-star-result.csv", list(result_data.values()))
 
 
 if __name__ == '__main__':
-    # crawl_from_blocks()
+    crawl_from_blocks()
     # computer_from_csv_file()
-    computer_addliq_model_from_csv_file()
+    # computer_addliq_model_from_csv_file()
