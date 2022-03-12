@@ -44,8 +44,7 @@ class CrawlTask:
                 continue
 
             event_data = event["data"][2:]
-            data = starcoin_types.DepositEvent.bcs_deserialize(
-                bytes.fromhex(event_data))
+            data = starcoin_types.DepositEvent.bcs_deserialize(bytes.fromhex(event_data))
             result.append(int(data.amount))
         return result
 
@@ -213,16 +212,16 @@ def computer_harvest_model_from_csv_file():
 def computer_addliq_model_from_csv_file():
     opts = file_util.read_from_file(LIQUIDITY_CRAWL_FILE)
 
-    # computer STC::STC <-> FAI::FAI pair
-    result_data = cal_rem_addliq.computer_users(opts, 'FAI::FAI', 100, 2)
-    file_util.save_to_file("datas/addliq-fai-result.csv", list(result_data.values()))
-
     # computer STC::STC <-> STAR::STAR pair
-    result_data = cal_rem_addliq.computer_users(opts, 'STAR::STAR', 1, 10)
+    result_data = cal_rem_addliq.computer_users(opts, 'STAR::STAR', 2, 12)
     file_util.save_to_file("datas/addliq-star-result.csv", list(result_data.values()))
+
+    # computer STC::STC <-> FAI::FAI pair
+    result_data = cal_rem_addliq.computer_users(opts, 'FAI::FAI', 100 * 0.9, 2)
+    file_util.save_to_file("datas/addliq-fai-result.csv", list(result_data.values()))
 
 
 if __name__ == '__main__':
-    crawl_from_blocks()
+    # crawl_from_blocks()
     # computer_from_csv_file()
-    # computer_addliq_model_from_csv_file()
+    computer_addliq_model_from_csv_file()
