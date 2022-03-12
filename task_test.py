@@ -1,7 +1,7 @@
 import unittest
 
 import starswap_decode_script
-from main import CrawlTask
+from main import CrawlTask, UserOpt
 
 
 class MyTestCase(unittest.TestCase):
@@ -19,6 +19,15 @@ class MyTestCase(unittest.TestCase):
         print(x_amount, y_amount)
         self.assertTrue(abs(x_amount) > 0, 'x amount is not equal 0')
         self.assertTrue(abs(y_amount) > 0, 'y amount is not equal 0')
+
+    def test_sorted(self):
+        opts = list()
+        for i in range(0, 10):
+            opts.append(UserOpt(i, None, None, None, None, None, None, None))
+        #new_opts = sorted(opts, key=lambda x: x.block_num, reverse=False)
+        opts.sort(key=lambda x: x.block_num, reverse=False)
+
+        self.assertTrue(opts[0] == 0)
 
 
 if __name__ == '__main__':

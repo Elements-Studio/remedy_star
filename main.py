@@ -1,10 +1,8 @@
 #!/bin/bash
 import concurrent
 import concurrent.futures
-import datetime
-from operator import itemgetter
 
-from starcoin.sdk import client, utils
+from starcoin.sdk import client
 from starcoin import starcoin_types, starcoin_stdlib
 
 import cal_rem_harvest, cal_rem_addliq
@@ -193,8 +191,9 @@ def crawl_from_blocks():
             else:
                 print('%r data count is %d' % (th, len(data)))
 
-    sorted_opts = sorted(opts, key=itemgetter('block_num'))
-    file_util.save_to_file(LIQUIDITY_CRAWL_FILE, opts=sorted_opts)
+    #sorted_opts = sorted(opts, key=itemgetter('block_num'))
+    opts.sort(key=lambda x: x.block_num, reverse=False)
+    file_util.save_to_file(LIQUIDITY_CRAWL_FILE, opts=opts)
 
 
 def computer_harvest_model_from_csv_file():
@@ -220,12 +219,12 @@ def computer_addliq_model_from_csv_file():
         file_util.save_to_file("datas/addliq-star-result.csv", list(result_data.values()))
 
     # computer STC::STC <-> FAI::FAI pair
-    result_data = cal_rem_addliq.computer_users(opts, 'FAI::FAI', 100 * 0.9, 2)
+    result_data = cal_rem_addliq.computer_users(opts, 'FAI::FAI', 100 * 2, 0.9)
     if len(result_data) > 0:
         file_util.save_to_file("datas/addliq-fai-result.csv", list(result_data.values()))
 
 
 if __name__ == '__main__':
-    crawl_from_blocks()
+    # crawl_from_blocks()
     # computer_from_csv_file()
     computer_addliq_model_from_csv_file()

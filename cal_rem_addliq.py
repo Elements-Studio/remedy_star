@@ -1,6 +1,7 @@
 from utils import time_util
 from ast import literal_eval as make_tuple
 
+
 class User:
     def __init__(self):
         self.sender = 0
@@ -46,7 +47,6 @@ def computer_users(opts, token_y_tag, multiplier, apy) -> dict:
             user.token_x = user.token_x + amount_x
             user.token_y = user.token_y + amount_y
         users[sender] = user
-
 
     for k, v in users.items():
         v.remedy_amount = v.token_y * multiplier * apy * 16_200 / 31_536_000
