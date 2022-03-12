@@ -2,6 +2,7 @@
 import concurrent
 import concurrent.futures
 import datetime
+from operator import itemgetter
 
 from starcoin.sdk import client, utils
 from starcoin import starcoin_types, starcoin_stdlib
@@ -45,8 +46,8 @@ class CrawlTask:
 
             event_data = event["data"][2:]
             data = starcoin_types.DepositEvent.bcs_deserialize(bytes.fromhex(event_data))
-            result.append(int(data.amount))
-        return result
+            result.append(- int(data.amount))
+        return tuple(result)
 
     def parser_txn(self, txn, block_num, block_timestamp):
         raw_txn = txn["raw_txn"]
@@ -192,7 +193,8 @@ def crawl_from_blocks():
             else:
                 print('%r data count is %d' % (th, len(data)))
 
-    file_util.save_to_file(LIQUIDITY_CRAWL_FILE, opts=opts)
+    sorted_opts = sorted(opts, key=itemgetter('block_num'))
+    file_util.save_to_file(LIQUIDITY_CRAWL_FILE, opts=sorted_opts)
 
 
 def computer_harvest_model_from_csv_file():
@@ -214,14 +216,16 @@ def computer_addliq_model_from_csv_file():
 
     # computer STC::STC <-> STAR::STAR pair
     result_data = cal_rem_addliq.computer_users(opts, 'STAR::STAR', 2, 12)
-    file_util.save_to_file("datas/addliq-star-result.csv", list(result_data.values()))
+    if len(result_data) > 0:
+        file_util.save_to_file("datas/addliq-star-result.csv", list(result_data.values()))
 
     # computer STC::STC <-> FAI::FAI pair
     result_data = cal_rem_addliq.computer_users(opts, 'FAI::FAI', 100 * 0.9, 2)
-    file_util.save_to_file("datas/addliq-fai-result.csv", list(result_data.values()))
+    if len(result_data) > 0:
+        file_util.save_to_file("datas/addliq-fai-result.csv", list(result_data.values()))
 
 
 if __name__ == '__main__':
-    # crawl_from_blocks()
+    crawl_from_blocks()
     # computer_from_csv_file()
     computer_addliq_model_from_csv_file()
